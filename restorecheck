@@ -1,0 +1,108 @@
+import tensorflow as tf
+import numpy as np
+import operator
+import collections
+tf.reset_default_graph()
+imported_meta =tf.train.import_meta_graph("./runs/1546457124/checkpoints/model-200.meta")
+
+
+with tf.Session() as sess:
+
+    imported_meta.restore(sess, tf.train.latest_checkpoint('./runs/1546457124/checkpoints'))
+    variables_names = [v.name for v in tf.trainable_variables() if (v.name.endswith('W:0') & (v.name.find('conv-maxpool')!=-1))]
+    print(tf.trainable_variables())
+    print(variables_names)
+    #weights = [v for v in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES) if v.name.endswith('W:0')]
+    #print('weights',weights)
+
+    def pruned_weights(variable_name):
+            var = sess.run(variable_name)
+            print('Original Value',var[:,:,:,20])
+            c = np.var(var)
+            weight_variance_list = []
+            weight_var = []
+    #print(var[0])
+            for i in range(128):
+
+                weight_variance = np.var(var[:,:,:,i])
+                print(weight_variance)
+                weight_var.append(weight_variance)
+        
+            print('weight_var',weight_var)
+            weight_var_numpy = np.asarray(weight_var)
+            print(weight_var_numpy)
+            weight_var_sorted = weight_var_numpy.argsort()
+    #print(weight_var_numpy.argsort())
+            for x in range(20):
+                indices = weight_var_sorted[x]
+                print(indices)
+                var[:,:,:,indices] = 0
+
+
+                 
+
+                #weight_var_numpy[indices] = 0
+
+            print(var)
+            return var      
+
+
+    
+    pruned_filter_weights = pruned_weights('conv-maxpool-3/W:0')
+    
+    print(type(pruned_filter_weights))
+    #pruned_filter_weights1 = tf.convert_to_tensor(pruned_filter_weights)
+    
+    #for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='conv-maxpool-3'):
+        #print(i)
+    #current_scope = tf.get_variable_scope()
+    #print(current_scope)    
+        #with tf.variable_scope('conv-maxpool-3',reuse=tf.AUTO_REUSE):
+            #v = tf.get_variable("W", [1])
+
+    new_node = tf.get_default_graph().get_tensor_by_name('conv-maxpool-3/W:0')
+    #print(new_node)
+    assign_node = tf.assign(new_node,pruned_filter_weights)  
+    print(assign_node)   
+    sess.run(assign_node)
+    conv_pruned = sess.run('conv-maxpool-3/W:0')
+    print('conv-maxpool-3/W:0',conv_pruned[:,:,:,20]) 
+
+
+    #var_weights = [v for v in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES) if v.name == 'conv-maxpool-3/W:0']
+    #sess.run(var_weights)
+    #for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Assign:0'):
+        #print(i)
+
+
+
+
+       
+        
+    #conv = tf.get_variable('conv-maxpool-3/W:0',[3,128,1,128])
+    #print(current_scope.name )
+    
+    #print(v.name)
+
+    #tf.cast('conv-maxpool-3/W:0', tf.float32)
+    #assign_node =  tf.assign(conv,pruned_filter_weights)
+    #sess.run(assign_node)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
